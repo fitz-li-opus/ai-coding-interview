@@ -1,4 +1,16 @@
 services:
+  gateway:
+    build: ./gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      user-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+
   user-service:
     build: ./services/user-service
     ports:
