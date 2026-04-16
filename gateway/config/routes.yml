@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+routes:
+  - prefix: /api/users
+    upstream: http://localhost:8081
+    strip_prefix: true
+  - prefix: /api/orders
+    upstream: http://localhost:8082
+    strip_prefix: true
+  - prefix: /api/products
+    upstream: http://localhost:8083
+    strip_prefix: true
+
+auth:
+  enabled: true
+  api_keys:
+    - "test-key-1"
+
+rate_limit:
+  enabled: true
+  rate: 10
+  burst: 20
+
+circuit_breaker:
+  enabled: true
+  failure_threshold: 5
+  success_threshold: 2
+  timeout_seconds: 30
+
+health_check:
+  interval_seconds: 10
+  timeout_seconds: 3

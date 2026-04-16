@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir *)",
+      "Bash(GONOSUMCHECK=* GONOPROXY=gopkg.in/yaml.v3 GOFLAGS= GOPROXY=https://proxy.golang.org,direct go mod *)",
+      "Bash(curl -s http://localhost:8081/health)",
+      "Bash(./gateway)",
+      "Bash(curl -s http://localhost:8080/api/users/)",
+      "Bash(curl -s http://localhost:8080/api/orders/)",
+      "Bash(curl -s http://localhost:8080/api/products/)",
+      "Bash(curl -s http://localhost:8080/not-found)"
+    ]
+  }
+}
