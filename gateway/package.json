@@ -1,0 +1,11 @@
+{
+  "name": "gateway",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts",
+    "dev": "bun --hot run index.ts",
+    "test": "bun test",
+    "smoke": "bun run scripts/smoke.ts"
+  }
+}
