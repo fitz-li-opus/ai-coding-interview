@@ -1,0 +1,49 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+      routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/users,/api/users/**
+          filters:
+            - StripPrefix=2
+
+        - id: order-service
+          uri: ${ORDER_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/orders,/api/orders/**
+          filters:
+            - StripPrefix=2
+
+        - id: product-service
+          uri: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/products,/api/products/**
+          filters:
+            - StripPrefix=2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always

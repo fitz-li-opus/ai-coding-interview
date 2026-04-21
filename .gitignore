@@ -17,11 +17,21 @@ go.sum
 bin/
 dist/
 build/
+target/
 *.exe
 *.dll
 *.so
 *.dylib
 
+# Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
 # Env
 .env
 .env.local
+.spectra/
+openspec/.vector-search.db*
