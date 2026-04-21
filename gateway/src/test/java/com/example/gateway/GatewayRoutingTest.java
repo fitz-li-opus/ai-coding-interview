@@ -34,4 +34,28 @@ class GatewayRoutingTest {
                 .exchange()
                 .expectStatus().isOk();
     }
+
+    @Test
+    void usersRouteWithoutTrailingSlashReturns200() {
+        webTestClient.get()
+                .uri("/api/users")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void ordersRouteWithoutTrailingSlashReturns200() {
+        webTestClient.get()
+                .uri("/api/orders")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void productsRouteWithoutTrailingSlashReturns200() {
+        webTestClient.get()
+                .uri("/api/products")
+                .exchange()
+                .expectStatus().isOk();
+    }
 }
