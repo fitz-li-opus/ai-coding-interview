@@ -1,54 +1,63 @@
 services:
-  gateway:
-    build: ./gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - GATEWAY_LISTEN_ADDR=:8080
-      - USER_SERVICE_URL=http://user-service:8080
-      - ORDER_SERVICE_URL=http://order-service:8080
-      - PRODUCT_SERVICE_URL=http://product-service:8080
-    volumes:
-      - ./gateway:/app
-    depends_on:
-      user-service:
-        condition: service_healthy
-      order-service:
-        condition: service_healthy
-      product-service:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+    k6:
+        image: grafana/k6:0.49.0
+        profiles: ['tools']
+        environment:
+            - BASE_URL=http://gateway:8080
+        volumes:
+            - ./gateway/tests/k6:/scripts:ro
+        command: ['run', '/scripts/gateway.js']
+        depends_on:
+            gateway:
+                condition: service_healthy
 
-  user-service:
-    build: ./services/user-service
-    ports:
-      - "8081:8080"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+    gateway:
+        build: ./gateway
+        ports:
+            - '8080:8080'
+        environment:
+            - GATEWAY_CONFIG_FILE=/app/config/gateway.dev.yaml
+        volumes:
+            - ./gateway:/app
+        depends_on:
+            user-service:
+                condition: service_healthy
+            order-service:
+                condition: service_healthy
+            product-service:
+                condition: service_healthy
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/healthz']
+            interval: 5s
+            timeout: 3s
+            retries: 3
 
-  order-service:
-    build: ./services/order-service
-    ports:
-      - "8082:8080"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+    user-service:
+        build: ./services/user-service
+        ports:
+            - '8081:8080'
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/health']
+            interval: 5s
+            timeout: 3s
+            retries: 3
 
-  product-service:
-    build: ./services/product-service
-    ports:
-      - "8083:8080"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+    order-service:
+        build: ./services/order-service
+        ports:
+            - '8082:8080'
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/health']
+            interval: 5s
+            timeout: 3s
+            retries: 3
+
+    product-service:
+        build: ./services/product-service
+        ports:
+            - '8083:8080'
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/health']
+            interval: 5s
+            timeout: 3s
+            retries: 3

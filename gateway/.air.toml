@@ -4,11 +4,10 @@ tmp_dir = "tmp"
 [build]
 cmd = "go build -o ./tmp/gateway ."
 bin = "./tmp/gateway"
-include_ext = ["go", "mod", "sum"]
+include_ext = ["go", "mod", "sum", "yaml", "yml"]
 exclude_dir = ["tmp", "vendor"]
 delay = 200
 poll = true
 
 [log]
 time = true
-
