@@ -17,6 +17,9 @@ go.sum
 bin/
 dist/
 build/
+target/
+out/
+*.class
 *.exe
 *.dll
 *.so
