@@ -25,3 +25,6 @@ build/
 # Env
 .env
 .env.local
+
+gateway/api-gateway
+gateway/gw
