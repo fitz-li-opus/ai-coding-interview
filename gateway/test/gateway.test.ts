@@ -114,6 +114,27 @@ describe("gateway proxy", () => {
     });
   });
 
+  test("returns 504 when upstream request times out", async () => {
+    const app = createApp(
+      {
+        ...config,
+        requestTimeoutMs: 1,
+      },
+      async (_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(new DOMException("aborted", "AbortError")),
+          );
+        }),
+    );
+    const response = await app.handle(new Request("http://gateway.test/api/users"));
+
+    expect(response.status).toBe(504);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "gateway_timeout",
+    });
+  });
+
   test("rate limits requests by client and route", async () => {
     const app = createApp(
       {
