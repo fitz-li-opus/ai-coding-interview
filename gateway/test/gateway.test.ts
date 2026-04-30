@@ -9,6 +9,11 @@ let config: GatewayConfig;
 beforeAll(() => {
   config = {
     port: 8080,
+    rateLimit: {
+      enabled: false,
+      maxRequests: 60,
+      windowMs: 60_000,
+    },
     requestTimeoutMs: 1_000,
     services: [
       {
@@ -106,6 +111,31 @@ describe("gateway proxy", () => {
     expect(response.status).toBe(502);
     await expect(response.json()).resolves.toMatchObject({
       error: "bad_gateway",
+    });
+  });
+
+  test("rate limits requests by client and route", async () => {
+    const app = createApp(
+      {
+        ...config,
+        rateLimit: {
+          enabled: true,
+          maxRequests: 2,
+          windowMs: 60_000,
+        },
+      },
+      echoFetch,
+    );
+
+    expect((await app.handle(new Request("http://gateway.test/api/users"))).status).toBe(200);
+    expect((await app.handle(new Request("http://gateway.test/api/users"))).status).toBe(200);
+
+    const response = await app.handle(new Request("http://gateway.test/api/users"));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    await expect(response.json()).resolves.toMatchObject({
+      error: "rate_limited",
     });
   });
 });
