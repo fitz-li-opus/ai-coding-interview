@@ -81,16 +81,23 @@ export const proxyRequest = async (request: Request, options: ProxyOptions): Pro
   const timeout = setTimeout(() => abortController.abort(), options.requestTimeoutMs);
 
   try {
+    const forwardHeaders = buildForwardHeaders(request);
+    const requestId = forwardHeaders.get("x-request-id") ?? crypto.randomUUID();
     const upstreamResponse = await (options.fetcher ?? fetch)(buildTargetUrl(request.url, route), {
       body: hasRequestBody(request.method) ? request.body : undefined,
-      headers: buildForwardHeaders(request),
+      headers: forwardHeaders,
       method: request.method,
       redirect: "manual",
       signal: abortController.signal,
     });
+    const headers = new Headers(upstreamResponse.headers);
+
+    if (!headers.has("x-request-id")) {
+      headers.set("x-request-id", requestId);
+    }
 
     return new Response(upstreamResponse.body, {
-      headers: upstreamResponse.headers,
+      headers,
       status: upstreamResponse.status,
       statusText: upstreamResponse.statusText,
     });

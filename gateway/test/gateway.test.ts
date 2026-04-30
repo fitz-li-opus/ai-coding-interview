@@ -159,4 +159,27 @@ describe("gateway proxy", () => {
       error: "rate_limited",
     });
   });
+
+  test("logs proxied requests with status, duration, and request id", async () => {
+    const entries: unknown[] = [];
+    const app = createApp(config, echoFetch, (entry) => entries.push(entry));
+
+    const response = await app.handle(
+      new Request("http://gateway.test/api/orders", {
+        headers: {
+          "x-request-id": "req-log",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      method: "GET",
+      path: "/api/orders",
+      requestId: "req-log",
+      status: 200,
+    });
+    expect(entries[0]).toHaveProperty("durationMs");
+  });
 });
