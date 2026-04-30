@@ -25,3 +25,7 @@ build/
 # Env
 .env
 .env.local
+
+
+# claude
+.claude
