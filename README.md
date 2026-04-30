@@ -2,9 +2,9 @@
 
 ## Overview
 
-You have **40 minutes** to design and implement a lightweight API Gateway using AI tools.
+This repository contains a lightweight API Gateway coding-interview project.
 
-You may use any AI coding tool (Claude Code / Cursor / Copilot / etc.) and any tech stack (Go / Node.js / Python / Rust / Java / etc.).
+The gateway implementation lives in `gateway/` and is built with Bun, TypeScript, and Elysia. It exposes one public HTTP entry point and forwards requests to three backend microservices.
 
 ---
 
@@ -36,40 +36,103 @@ Each service also exposes a `/health` endpoint for health checks.
 
 ---
 
-## Your Task
+## API Gateway
 
-Implement an API Gateway in the `gateway/` directory. The gateway should listen on a single port (recommended `8080`) and forward requests to the appropriate backend service based on routing rules:
+The gateway listens on `http://localhost:8080` by default and forwards requests based on path prefix:
 
 - `/api/users/**` → `http://localhost:8081`
 - `/api/orders/**` → `http://localhost:8082`
 - `/api/products/**` → `http://localhost:8083`
 
-This is the **minimum requirement**. Think about what a production-grade API Gateway should look like — any additional capabilities you design and implement will be considered as bonus points.
+It also exposes:
+
+- `/health` → gateway health and configured upstream list
+
+Implemented gateway features:
+
+- Elysia-based routing
+- native `fetch` proxying
+- method, query string, body, and header forwarding
+- `X-Request-ID` propagation/generation
+- upstream timeout handling
+- `404` for unknown routes
+- `502` for upstream failures
+- Bun tests, TypeScript type checking, oxlint, and oxfmt
 
 ---
 
-## Deliverables
+## Run
 
-- Working, runnable code
-- Demonstrate with curl that requests are correctly routed through the gateway
-- Be prepared to explain your design decisions and trade-offs
+Start backend services from the repository root:
 
----
+```bash
+docker compose up --build
+```
 
-## Suggested Time Allocation
+In another terminal, start the gateway:
 
-| Phase | Time | Activity |
-|-------|------|----------|
-| Understand requirements & design | ~8 min | Read this document, plan your architecture, align with the interviewer |
-| Implement with AI | ~22 min | Code your solution in the `gateway/` directory |
-| Demo & Q&A | ~10 min | curl demo + interviewer questions |
+```bash
+cd gateway
+bun install
+bun run dev
+```
 
----
+Or start everything, including the gateway, with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Demo requests:
+
+```bash
+curl http://localhost:8080/api/users
+curl http://localhost:8080/api/orders
+curl http://localhost:8080/api/products
+curl http://localhost:8080/health
+```
+
+## Configuration
+
+| Env var | Default |
+|---------|---------|
+| `PORT` | `8080` |
+| `REQUEST_TIMEOUT_MS` | `5000` |
+| `USER_SERVICE_URL` | `http://localhost:8081` |
+| `ORDER_SERVICE_URL` | `http://localhost:8082` |
+| `PRODUCT_SERVICE_URL` | `http://localhost:8083` |
+
+Example:
+
+```bash
+PORT=3000 REQUEST_TIMEOUT_MS=2000 bun run start
+```
+
+## Development
+
+Run all gateway checks:
+
+```bash
+cd gateway
+bun run check
+```
+
+`bun run check` runs lint, format check, typecheck, tests, and production build.
+
+Individual commands:
+
+```bash
+bun run build
+bun run lint
+bun run format:check
+bun run typecheck
+bun test
+```
 
 ## Important Notes
 
 - **Do NOT modify** any code under the `services/` directory
-- All your code should be written in the `gateway/` directory
+- Gateway code is under the `gateway/` directory
 - Submit your code as a Pull Request when finished
 - The interviewer will observe your screen throughout — the focus is on **how you collaborate with AI**, not just the final result
 
@@ -85,5 +148,9 @@ This is the **minimum requirement**. Think about what a production-grade API Gat
 │   ├── user-service/      ← User service (:8081)
 │   ├── order-service/     ← Order service (:8082)
 │   └── product-service/   ← Product service (:8083)
-└── gateway/               ← Your working directory (currently empty)
+└── gateway/               ← Bun + Elysia API Gateway
+    ├── src/               ← Gateway source
+    ├── test/              ← Bun tests
+    ├── package.json       ← Scripts and dependencies
+    └── README.md          ← Gateway-specific notes
 ```

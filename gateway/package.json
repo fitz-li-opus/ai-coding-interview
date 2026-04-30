@@ -1,0 +1,29 @@
+{
+  "name": "api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "start:prod": "bun dist/index.js",
+    "test": "bun test",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run lint && bun run format:check && bun run typecheck && bun test && bun run build"
+  },
+  "dependencies": {
+    "elysia": "1.4.28"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.13",
+    "lefthook": "2.1.6",
+    "oxfmt": "0.47.0",
+    "oxlint": "1.62.0",
+    "typescript": "6.0.3"
+  }
+}
