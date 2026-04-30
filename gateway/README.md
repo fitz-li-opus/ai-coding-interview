@@ -11,6 +11,20 @@ bun run dev
 
 Gateway listens on `http://localhost:8080` by default.
 
+## Build
+
+```bash
+bun run build
+bun run start:prod
+```
+
+Docker:
+
+```bash
+docker build -t api-gateway ./gateway
+docker run --rm -p 8080:8080 api-gateway
+```
+
 ## Routes
 
 | Gateway route      | Upstream                |
@@ -48,6 +62,8 @@ Start upstream services from the repo root:
 docker compose up --build
 ```
 
+This starts the gateway and all upstream services.
+
 Then run:
 
 ```bash
@@ -71,3 +87,5 @@ curl -i http://localhost:8080/api/users
 ```bash
 bun run check
 ```
+
+`check` runs lint, format check, typecheck, tests, and production build.

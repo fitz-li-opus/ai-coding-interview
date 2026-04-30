@@ -40,7 +40,9 @@ const echoFetch: Fetcher = async (input, init) => {
   const url = new URL(request.url);
 
   return Response.json({
+    authorization: request.headers.get("authorization"),
     body: await request.text(),
+    contentType: request.headers.get("content-type"),
     method: request.method,
     path: url.pathname,
     query: url.search,
@@ -76,6 +78,8 @@ describe("gateway proxy", () => {
       new Request("http://gateway.test/api/orders/1001?expand=user", {
         body: "payload",
         headers: {
+          authorization: "Bearer token",
+          "content-type": "text/plain",
           "x-request-id": "req-123",
         },
         method: "POST",
@@ -83,8 +87,11 @@ describe("gateway proxy", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("x-request-id")).toBe("req-123");
     await expect(response.json()).resolves.toEqual({
+      authorization: "Bearer token",
       body: "payload",
+      contentType: "text/plain",
       method: "POST",
       path: "/api/orders/1001",
       query: "?expand=user",
@@ -100,6 +107,13 @@ describe("gateway proxy", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: "not_found",
     });
+  });
+
+  test("does not treat similar prefixes as configured routes", async () => {
+    const app = createApp(config, echoFetch);
+    const response = await app.handle(new Request("http://gateway.test/api/users2"));
+
+    expect(response.status).toBe(404);
   });
 
   test("returns 502 when upstream connection fails", async () => {

@@ -77,6 +77,12 @@ bun install
 bun run dev
 ```
 
+Or start everything, including the gateway, with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
 Demo requests:
 
 ```bash
@@ -111,9 +117,12 @@ cd gateway
 bun run check
 ```
 
+`bun run check` runs lint, format check, typecheck, tests, and production build.
+
 Individual commands:
 
 ```bash
+bun run build
 bun run lint
 bun run format:check
 bun run typecheck

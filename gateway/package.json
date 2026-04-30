@@ -4,15 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target bun",
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
+    "start:prod": "bun dist/index.js",
     "test": "bun test",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "typecheck": "tsc --noEmit",
-    "check": "bun run lint && bun run format:check && bun run typecheck && bun test"
+    "check": "bun run lint && bun run format:check && bun run typecheck && bun test && bun run build"
   },
   "dependencies": {
     "elysia": "1.4.28"
