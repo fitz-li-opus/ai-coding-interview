@@ -1,0 +1,21 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts",
+    "dev": "bun --watch index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:unit": "bun test index.test.ts",
+    "test:integration": "bun test integration.test.ts",
+    "load-test": "bun run load-test.ts",
+    "load-test:small": "bun run load-test.ts 100 10",
+    "load-test:medium": "bun run load-test.ts 1000 50",
+    "load-test:large": "bun run load-test.ts 5000 100"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
