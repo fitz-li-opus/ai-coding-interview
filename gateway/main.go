@@ -40,9 +40,22 @@ func main() {
 	// Create handler
 	handler := NewProxyHandler(router, lb, cache, limiter)
 
+	// Create mux for routing
+	mux := http.NewServeMux()
+
+	// Health check endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"healthy","service":"api-gateway"}`))
+	})
+
+	// All other requests go to proxy handler
+	mux.Handle("/", handler)
+
 	// Start server
 	addr := ":" + strconv.Itoa(port)
 	log.Printf("API Gateway listening on %s", addr)
 	log.Printf("Rate limit: %d requests/minute, Cache TTL: %ds", rateLimit, cacheTTL)
-	log.Fatal(http.ListenAndServe(addr, handler))
+	log.Fatal(http.ListenAndServe(addr, mux))
 }

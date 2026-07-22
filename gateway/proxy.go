@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -26,27 +27,35 @@ func NewProxyHandler(router *Router, lb *LoadBalancer, cache *Cache, limiter *Ra
 	}
 }
 
-// responseRecorder captures the response for caching.
-type responseRecorder struct {
-	http.ResponseWriter
-	statusCode int
-	body       bytes.Buffer
-}
+// getClientIP extracts the client IP from the request.
+// It checks X-Forwarded-For header first (for proxy scenarios),
+// then falls back to RemoteAddr.
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header first
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// Take the first IP in the chain
+		if idx := len(xff); idx > 0 {
+			for i, c := range xff {
+				if c == ',' {
+					return xff[:i]
+				}
+			}
+			return xff
+		}
+	}
 
-func (rr *responseRecorder) WriteHeader(code int) {
-	rr.statusCode = code
-	rr.ResponseWriter.WriteHeader(code)
-}
-
-func (rr *responseRecorder) Write(b []byte) (int, error) {
-	rr.body.Write(b)
-	return rr.ResponseWriter.Write(b)
+	// Fall back to RemoteAddr, strip port
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 // ServeHTTP handles incoming requests.
 func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Get client IP
-	clientIP := r.RemoteAddr
+	clientIP := getClientIP(r)
 
 	// Rate limiting
 	if !p.limiter.Allow(clientIP) {
@@ -95,17 +104,28 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Create reverse proxy
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
-	// Modify the request
+	// Modify the request to add X-Forwarded headers
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
 		req.Host = target.Host
+
+		// Add X-Forwarded headers
+		if prior := req.Header.Get("X-Forwarded-For"); prior != "" {
+			req.Header.Set("X-Forwarded-For", prior+", "+clientIP)
+		} else {
+			req.Header.Set("X-Forwarded-For", clientIP)
+		}
+		req.Header.Set("X-Forwarded-Host", r.Host)
+		if r.TLS != nil {
+			req.Header.Set("X-Forwarded-Proto", "https")
+		} else {
+			req.Header.Set("X-Forwarded-Proto", "http")
+		}
 	}
 
 	// For GET requests, capture response for caching
 	if r.Method == http.MethodGet {
-		recorder := &responseRecorder{ResponseWriter: w, statusCode: http.StatusOK}
-
 		proxy.ModifyResponse = func(resp *http.Response) error {
 			// Read the body
 			body, err := io.ReadAll(resp.Body)
@@ -123,8 +143,7 @@ func (p *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("X-Cache", "MISS")
-		proxy.ServeHTTP(recorder, r)
-	} else {
-		proxy.ServeHTTP(w, r)
 	}
+
+	proxy.ServeHTTP(w, r)
 }
