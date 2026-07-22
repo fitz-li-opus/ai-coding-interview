@@ -70,7 +70,6 @@ This is the **minimum requirement**. Think about what a production-grade API Gat
 
 - **Do NOT modify** any code under the `services/` directory
 - All your code should be written in the `gateway/` directory
-- Submit your code as a Pull Request when finished
 - The interviewer will observe your screen throughout — the focus is on **how you collaborate with AI**, not just the final result
 
 ---
