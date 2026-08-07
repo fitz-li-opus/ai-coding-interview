@@ -29,6 +29,12 @@ curl -i http://localhost:8080/api/nope        # -> 404 no_route
 The backends echo the path they received, so the `path` field in the response is
 the proof that prefix stripping happened.
 
+`./demo.sh` walks all of it end to end, including the failure paths: routing and
+prefix stripping, the reserved `/health`, both 404 cases, request-id propagation,
+502 (it stops `order-service` and starts it again), and 504 (a throwaway gateway
+instance pointed at an upstream that never answers). It restores everything on
+exit, including on Ctrl-C.
+
 ## Configuration
 
 ```json
