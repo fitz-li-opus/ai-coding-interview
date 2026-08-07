@@ -17,6 +17,7 @@ go.sum
 bin/
 dist/
 build/
+gateway/gateway
 *.exe
 *.dll
 *.so

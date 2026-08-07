@@ -1,0 +1,22 @@
+{
+  "listen": ":8080",
+  "default_timeout_ms": 3000,
+  "routes": [
+    {
+      "path": "/api/users/**",
+      "target": "http://localhost:8081",
+      "strip_prefix": true
+    },
+    {
+      "path": "/api/orders/**",
+      "target": "http://localhost:8082",
+      "strip_prefix": true
+    },
+    {
+      "path": "/api/products/**",
+      "target": "http://localhost:8083",
+      "strip_prefix": true,
+      "timeout_ms": 5000
+    }
+  ]
+}
