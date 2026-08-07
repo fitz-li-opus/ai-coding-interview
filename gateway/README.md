@@ -3,6 +3,9 @@
 A reverse-proxy gateway on `:8080`, written against the Go standard library only —
 `go.mod` has no `require` block, so it builds and runs with no network access.
 
+This file covers how it works. [ROADMAP.md](ROADMAP.md) covers what is done, the
+trade-offs behind each decision, and what comes next.
+
 ## Run
 
 ```bash
