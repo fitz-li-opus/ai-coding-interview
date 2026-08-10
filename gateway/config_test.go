@@ -98,6 +98,7 @@ func TestLoadConfigRejectsUnsafeUpstreamURLs(t *testing.T) {
 		{name: "unsupported scheme", value: "file://localhost/tmp/users"},
 		{name: "credentials", value: "http://admin:secret@localhost:8081"},
 		{name: "query", value: "http://localhost:8081?admin=true"},
+		{name: "empty query", value: "http://localhost:8081?"},
 		{name: "fragment", value: "http://localhost:8081#internal"},
 		{name: "zero port", value: "http://localhost:0"},
 		{name: "empty port", value: "http://localhost:"},

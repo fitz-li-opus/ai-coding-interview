@@ -105,7 +105,7 @@ func parseURL(value string) (*url.URL, error) {
 	if parsed.User != nil {
 		return nil, fmt.Errorf("credentials are not allowed")
 	}
-	if parsed.RawQuery != "" {
+	if parsed.RawQuery != "" || parsed.ForceQuery {
 		return nil, fmt.Errorf("query is not allowed")
 	}
 	if parsed.Fragment != "" {
