@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  # ============ 网关路由规则 ============
+  cloud:
+    gateway:
+      routes:
+        # 用户服务
+        - id: user-service
+          uri: ${USER_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/api/users/**
+        # 订单服务
+        - id: order-service
+          uri: ${ORDER_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/api/orders/**
+        # 商品服务
+        - id: product-service
+          uri: ${PRODUCT_SERVICE_URI:http://localhost:8083}
+          predicates:
+            - Path=/api/products/**

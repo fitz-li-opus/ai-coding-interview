@@ -21,7 +21,17 @@ build/
 *.dll
 *.so
 *.dylib
+target/
+*.jar
+
+# Nacos 下载产物（gateway 内）
+gateway/scripts/nacos/
+gateway/scripts/*.zip
 
 # Env
 .env
 .env.local
+
+graphify-out
+*.exe
+
