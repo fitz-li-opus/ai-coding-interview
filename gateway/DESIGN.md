@@ -118,7 +118,14 @@ and client IP. `X-Request-ID` is reused when the caller already sent one,
 otherwise generated, and it is echoed to both the client and the backend so a
 trace survives the hop.
 
-### Graceful shutdown
+### Startup fails fast, shutdown drains
+
+The listener is bound *before* anything is logged as ready. Calling
+`ListenAndServe` from a goroutine — the usual shortcut — lets the process print
+"gateway listening" and then exit 0 when the port is already taken, which is the
+worst possible failure: a supervisor records a healthy start and there is no
+service. A bind error is one ERROR line and `exit 1`. The logged address comes
+from `listener.Addr()`, not from the config, so it is the port actually bound.
 
 `SIGINT`/`SIGTERM` → `srv.Shutdown` with a 5s drain, and the same context stops
 the health checker. In-flight requests finish instead of being cut.

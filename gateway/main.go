@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -62,18 +63,31 @@ func main() {
 		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
 	}
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("server failed", "err", err)
-			stop()
-		}
-	}()
+	// Bind before announcing anything. ListenAndServe inside a goroutine would
+	// let the process log "listening" and exit 0 on a port clash, which is the
+	// worst way to fail: a supervisor sees a healthy start and no service.
+	listener, err := net.Listen("tcp", cfg.Listen)
+	if err != nil {
+		logger.Error("cannot bind listen address", "addr", cfg.Listen, "err", err)
+		os.Exit(1)
+	}
+
 	for _, rt := range routes {
 		logger.Info("route registered", "prefix", rt.Prefix, "strip_prefix", rt.StripPrefix, "targets", len(rt.Upstreams))
 	}
-	logger.Info("gateway listening", "addr", cfg.Listen)
+	logger.Info("gateway listening", "addr", listener.Addr().String())
 
-	<-ctx.Done()
+	serveErr := make(chan error, 1)
+	go func() { serveErr <- srv.Serve(listener) }()
+
+	select {
+	case <-ctx.Done():
+	case err := <-serveErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("server failed", "err", err)
+			os.Exit(1)
+		}
+	}
 	stop()
 	logger.Info("shutting down, draining in-flight requests")
 
