@@ -1,0 +1,19 @@
+{
+  "listen": ":8088",
+  "timeouts": {
+    "upstream_ms": 5000,
+    "dial_ms": 2000,
+    "read_header_ms": 5000
+  },
+  "health_check": {
+    "enabled": true,
+    "path": "/health",
+    "interval_ms": 5000,
+    "timeout_ms": 2000
+  },
+  "routes": [
+    { "prefix": "/api/users",    "strip_prefix": true, "targets": ["http://localhost:8081"] },
+    { "prefix": "/api/orders",   "strip_prefix": true, "targets": ["http://localhost:8082"] },
+    { "prefix": "/api/products", "strip_prefix": true, "targets": ["http://localhost:8083"] }
+  ]
+}
