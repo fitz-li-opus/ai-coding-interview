@@ -1,6 +1,6 @@
 # Python API Gateway
 
-This directory contains the P0 implementation of the API Gateway described in
+This directory contains the P0 and P1 implementation of the API Gateway described in
 the repository-level `req.md`.
 
 ## Requirements
@@ -31,6 +31,13 @@ python main.py
 ```
 
 The gateway listens on `http://localhost:8080` by default.
+
+For development and testing, install the development dependencies instead:
+
+```bash
+python -m pip install -r requirements-dev.txt
+pytest -q
+```
 
 ## Configuration
 
@@ -83,7 +90,19 @@ curl -i http://localhost:8080/not-configured
 Both requests return a JSON `404` response. If an upstream is unavailable or
 times out, the gateway returns JSON with status `502` or `504` respectively.
 
-## P0 scope
+Verify gateway liveness and request ID propagation:
+
+```bash
+curl -i http://localhost:8080/health
+curl -i -H 'X-Request-ID: demo-request' http://localhost:8080/api/users
+```
+
+`/health` reports only the gateway process state and does not depend on any
+upstream. Every response includes `X-Request-ID`; error JSON also includes the
+same value. Access logs contain request ID, method, path, status, latency, and
+the selected target without logging Authorization or Cookie values.
+
+## Implemented scope
 
 Implemented:
 
@@ -94,6 +113,10 @@ Implemented:
 - Hop-by-hop header filtering
 - Shared HTTPX connection pool with a configurable timeout
 - JSON errors for 404, 502, 504, and unexpected 500 responses
+- Gateway liveness endpoint at `/health`
+- Generated or client-supplied request ID propagation
+- Access logging with latency and selected target
+- MockTransport-based tests that do not require Docker
+- Graceful shared-client cleanup during application shutdown
 
-Health/readiness endpoints, request IDs, access logging, automated tests, and
-streaming downstream responses are intentionally left for P1/P2.
+Upstream readiness checks and streaming downstream responses remain P2 features.

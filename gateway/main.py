@@ -2,6 +2,8 @@
 
 import logging
 import os
+import time
+import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -14,6 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
 logger = logging.getLogger("gateway")
+logger.setLevel(logging.INFO)
 
 SUPPORTED_METHODS = [
     "GET",
@@ -111,14 +114,17 @@ def _request_headers(request: Request) -> List[Tuple[str, str]]:
     raw_headers = request.headers.raw
     excluded = HOP_BY_HOP_HEADERS | _connection_header_names(raw_headers)
     # HTTPX constructs the correct Host and Content-Length values for the
-    # selected upstream and forwarded body.
-    excluded.update({"host", "content-length"})
+    # selected upstream and forwarded body. X-Request-ID is added from request
+    # state so generated IDs and client-supplied IDs follow the same path.
+    excluded.update({"host", "content-length", "x-request-id"})
 
-    return [
+    headers = [
         (name.decode("latin-1"), value.decode("latin-1"))
         for name, value in raw_headers
         if name.decode("latin-1").lower() not in excluded
     ]
+    headers.append(("X-Request-ID", request.state.request_id))
+    return headers
 
 
 def _response_headers(response: httpx.Response) -> List[Tuple[bytes, bytes]]:
@@ -136,14 +142,25 @@ def _response_headers(response: httpx.Response) -> List[Tuple[bytes, bytes]]:
     ]
 
 
-def _error(status_code: int, error: str, message: str) -> JSONResponse:
+def _error(
+    status_code: int,
+    error: str,
+    message: str,
+    request_id: Optional[str] = None,
+) -> JSONResponse:
+    content = {"error": error, "message": message}
+    if request_id is not None:
+        content["request_id"] = request_id
     return JSONResponse(
         status_code=status_code,
-        content={"error": error, "message": message},
+        content=content,
     )
 
 
-def create_app(settings: Optional[Settings] = None) -> FastAPI:
+def create_app(
+    settings: Optional[Settings] = None,
+    transport: Optional[httpx.AsyncBaseTransport] = None,
+) -> FastAPI:
     settings = settings or Settings.from_environment()
 
     @asynccontextmanager
@@ -155,6 +172,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 max_keepalive_connections=20,
             ),
             follow_redirects=False,
+            transport=transport,
         )
         try:
             yield
@@ -170,13 +188,60 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     )
     app.state.settings = settings
 
+    @app.middleware("http")
+    async def request_context(request: Request, call_next):
+        started_at = time.perf_counter()
+        request_id = request.headers.get("X-Request-ID", "").strip()
+        if not request_id:
+            request_id = str(uuid.uuid4())
+
+        request.state.request_id = request_id
+        request.state.target_service = "unmatched"
+
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            logger.error(
+                "Unhandled gateway error",
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+            response = _error(
+                500,
+                "internal_server_error",
+                "An unexpected error occurred",
+                request_id,
+            )
+
+        response.headers["X-Request-ID"] = request_id
+        duration_ms = (time.perf_counter() - started_at) * 1000
+        logger.info(
+            "request_id=%s method=%s path=%s status=%s duration_ms=%.2f target=%s",
+            request_id,
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+            request.state.target_service,
+        )
+        return response
+
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(
         request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
         if exc.status_code == 404:
-            return _error(404, "route_not_found", "No route configured for this path")
-        return _error(exc.status_code, "http_error", str(exc.detail))
+            return _error(
+                404,
+                "route_not_found",
+                "No route configured for this path",
+                request.state.request_id,
+            )
+        return _error(
+            exc.status_code,
+            "http_error",
+            str(exc.detail),
+            request.state.request_id,
+        )
 
     @app.exception_handler(Exception)
     async def unexpected_exception_handler(
@@ -186,7 +251,17 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             "Unhandled gateway error",
             exc_info=(type(exc), exc, exc.__traceback__),
         )
-        return _error(500, "internal_server_error", "An unexpected error occurred")
+        return _error(
+            500,
+            "internal_server_error",
+            "An unexpected error occurred",
+            request.state.request_id,
+        )
+
+    @app.get("/health", include_in_schema=False)
+    async def health(request: Request) -> Dict[str, str]:
+        request.state.target_service = "gateway"
+        return {"status": "healthy", "service": "api-gateway"}
 
     async def forward_request(
         request: Request, service: str, path: str = ""
@@ -197,7 +272,10 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 404,
                 "route_not_found",
                 "No route configured for this path",
+                request.state.request_id,
             )
+
+        request.state.target_service = service
 
         rewritten_path = f"/{path}" if path else "/"
         upstream_url = httpx.URL(
@@ -218,15 +296,28 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             try:
                 # Buffering is intentional for the P0 implementation. Streaming
                 # large responses remains an explicitly documented P2 feature.
-                response_body = b"".join(
-                    [chunk async for chunk in upstream_response.aiter_raw()]
-                )
+                if upstream_response.is_stream_consumed:
+                    response_body = upstream_response.content
+                else:
+                    response_body = b"".join(
+                        [chunk async for chunk in upstream_response.aiter_raw()]
+                    )
             finally:
                 await upstream_response.aclose()
         except httpx.TimeoutException:
-            return _error(504, "gateway_timeout", "Upstream service timed out")
+            return _error(
+                504,
+                "gateway_timeout",
+                "Upstream service timed out",
+                request.state.request_id,
+            )
         except httpx.RequestError:
-            return _error(502, "bad_gateway", "Upstream service is unavailable")
+            return _error(
+                502,
+                "bad_gateway",
+                "Upstream service is unavailable",
+                request.state.request_id,
+            )
 
         downstream_response = Response(
             content=response_body,
