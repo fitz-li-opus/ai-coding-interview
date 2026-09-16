@@ -1,0 +1,47 @@
+{
+  "listen": ":8080",
+  "defaults": {
+    "timeout": {
+      "connect": "2s",
+      "response_header": "5s",
+      "idle": "60s"
+    },
+    "retry": {
+      "max": 2,
+      "backoff": "50ms",
+      "jitter": true,
+      "statuses": [502, 503, 504]
+    },
+    "health": {
+      "path": "/health",
+      "interval": "5s",
+      "timeout": "2s",
+      "healthy_threshold": 2,
+      "unhealthy_threshold": 3,
+      "ejection": "5s"
+    }
+  },
+  "routes": [
+    {
+      "id": "users",
+      "match": { "prefix": "/api/users", "methods": ["GET"] },
+      "upstreams": [{ "url": "http://localhost:8081", "weight": 1 }],
+      "lb": "round_robin",
+      "strip_prefix": "/api"
+    },
+    {
+      "id": "orders",
+      "match": { "prefix": "/api/orders", "methods": ["GET"] },
+      "upstreams": [{ "url": "http://localhost:8082", "weight": 1 }],
+      "lb": "round_robin",
+      "strip_prefix": "/api"
+    },
+    {
+      "id": "products",
+      "match": { "prefix": "/api/products", "methods": ["GET"] },
+      "upstreams": [{ "url": "http://localhost:8083", "weight": 1 }],
+      "lb": "round_robin",
+      "strip_prefix": "/api"
+    }
+  ]
+}
