@@ -13,6 +13,7 @@ You may use any AI coding tool (Claude Code / Cursor / Copilot / etc.) and any t
 This project provides **3 backend microservices**, ready to launch with Docker Compose:
 
 ```bash
+./gateway/scripts/generate-dev-cert.sh
 docker compose up --build
 ```
 

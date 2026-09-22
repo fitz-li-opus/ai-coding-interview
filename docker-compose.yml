@@ -28,3 +28,27 @@ services:
       interval: 5s
       timeout: 3s
       retries: 3
+
+  gateway:
+    build:
+      context: ./gateway
+      target: runtime
+    command:
+      - --config
+      - /etc/gateway/config.yaml
+      - --tls-cert
+      - /run/gateway-certs/server.crt
+      - --tls-key
+      - /run/gateway-certs/server.key
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./gateway/config.example.yaml:/etc/gateway/config.yaml:ro
+      - ./gateway/.local/certs:/run/gateway-certs:ro
+    depends_on:
+      user-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy

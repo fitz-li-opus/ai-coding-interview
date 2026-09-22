@@ -1,0 +1,71 @@
+server:
+  address: ":8443"
+  read_header_timeout: 5s
+  read_timeout: 15s
+  idle_timeout: 60s
+  shutdown_timeout: 5s
+  max_header_bytes: 32768
+  max_body_bytes: 1048576
+
+upstreams:
+  - id: users
+    endpoints:
+      - http://user-service:8080
+    health:
+      path: /health
+      interval: 5s
+      timeout: 1s
+  - id: orders
+    endpoints:
+      - http://order-service:8080
+    health:
+      path: /health
+      interval: 5s
+      timeout: 1s
+  - id: products
+    endpoints:
+      - http://product-service:8080
+    health:
+      path: /health
+      interval: 5s
+      timeout: 1s
+
+routes:
+  - id: users-domain
+    hosts: [users.internal.test]
+    path_prefix: /
+    upstream: users
+    timeout: 3s
+    rate_limit: &default_rate_limit
+      requests_per_second: 10
+      burst: 20
+  - id: orders-domain
+    hosts: [orders.internal.test]
+    path_prefix: /
+    upstream: orders
+    timeout: 3s
+    rate_limit: *default_rate_limit
+  - id: products-domain
+    hosts: [products.internal.test]
+    path_prefix: /
+    upstream: products
+    timeout: 3s
+    rate_limit: *default_rate_limit
+  - id: users-path
+    hosts: []
+    path_prefix: /api/users
+    upstream: users
+    timeout: 3s
+    rate_limit: *default_rate_limit
+  - id: orders-path
+    hosts: []
+    path_prefix: /api/orders
+    upstream: orders
+    timeout: 3s
+    rate_limit: *default_rate_limit
+  - id: products-path
+    hosts: []
+    path_prefix: /api/products
+    upstream: products
+    timeout: 3s
+    rate_limit: *default_rate_limit
