@@ -1,0 +1,14 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dependency-free API gateway for the coding interview",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/gateway.test.js",
+    "test:acceptance": "node --test test/acceptance.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
