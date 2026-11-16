@@ -1,0 +1,28 @@
+# Gateway routing table.
+# Each upstream can be overridden with an env var: UPSTREAM_<NAME>_URL
+# (e.g. UPSTREAM_USERS_URL=http://user-service:8080 inside docker compose).
+
+timeouts:
+  connect: 2.0   # seconds
+  read: 10.0
+  write: 10.0
+  pool: 2.0
+
+# rate_limit (optional, per route, keyed by client IP):
+#   token bucket refilled at `rate` tokens/sec, holding at most `burst` tokens.
+routes:
+  - name: users
+    prefix: /api/users
+    upstream: http://localhost:8081
+    strip_prefix: true
+    rate_limit: { rate: 5, burst: 10 }
+  - name: orders
+    prefix: /api/orders
+    upstream: http://localhost:8082
+    strip_prefix: true
+    rate_limit: { rate: 5, burst: 10 }
+  - name: products
+    prefix: /api/products
+    upstream: http://localhost:8083
+    strip_prefix: true
+    rate_limit: { rate: 5, burst: 10 }
